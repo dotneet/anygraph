@@ -25,7 +25,7 @@
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
-      "activitybar": [
+      "panel": [
         {
           "id": "anygraph",
           "title": "AnyGraph",

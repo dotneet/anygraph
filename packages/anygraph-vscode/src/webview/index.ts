@@ -37,7 +37,7 @@ class WebViewManager {
     }
 
     // Listen for messages from the extension
-    window.addEventListener('message', event => {
+    window.addEventListener('message', (event: any) => {
       const message = event.data;
       this.handleMessage(message);
     });
@@ -68,58 +68,63 @@ class WebViewManager {
     console.log('updateData called with:', { rawText, dataset });
 
     try {
-      // Clear placeholder content
+      // Always recreate the instance to avoid React DOM issues
+      if (this.anyGraphInstance) {
+        console.log('Destroying existing AnyGraph instance');
+        try {
+          this.anyGraphInstance.destroy();
+        } catch (error) {
+          console.warn('Error destroying existing instance:', error);
+        }
+        this.anyGraphInstance = null;
+      }
+
+      // Clear container content
       this.container.innerHTML = '';
 
-      // Create or update AnyGraph instance
-      if (this.anyGraphInstance) {
-        console.log('Updating existing AnyGraph instance');
-        this.anyGraphInstance.updateDataset(dataset);
-      } else {
-        // Calculate responsive dimensions
-        const containerWidth = this.container.clientWidth || 300;
-        const containerHeight = this.container.clientHeight || 400;
-        const graphWidth = Math.max(200, containerWidth - 40);
-        const graphHeight = Math.max(150, containerHeight - 100);
+      // Calculate responsive dimensions
+      const containerWidth = this.container.clientWidth || 300;
+      const containerHeight = this.container.clientHeight || 400;
+      const graphWidth = Math.max(200, containerWidth - 40);
+      const graphHeight = Math.max(150, containerHeight - 100);
 
-        console.log('Container dimensions:', { containerWidth, containerHeight, graphWidth, graphHeight });
-        console.log('Creating new AnyGraph instance with dataset:', dataset);
+      console.log('Container dimensions:', { containerWidth, containerHeight, graphWidth, graphHeight });
+      console.log('Creating new AnyGraph instance with dataset:', dataset);
 
-        const defaultConfig: GraphConfig = {
-          type: 'line',
-          scale: {
-            xMin: 0,
-            xMax: 10,
-            yMin: 0,
-            yMax: 10,
-            autoScale: true,
+      const defaultConfig: GraphConfig = {
+        type: 'line',
+        scale: {
+          xMin: 0,
+          xMax: 10,
+          yMin: 0,
+          yMax: 10,
+          autoScale: true,
+        },
+        render: {
+          width: graphWidth,
+          height: graphHeight,
+          backgroundColor: '#ffffff',
+          gridColor: '#e0e0e0',
+          axisColor: '#333333',
+          showGrid: true,
+          showAxes: true,
+        },
+        series: [
+          {
+            color: '#2196f3',
+            label: 'Series 1',
+            visible: true,
           },
-          render: {
-            width: graphWidth,
-            height: graphHeight,
-            backgroundColor: '#ffffff',
-            gridColor: '#e0e0e0',
-            axisColor: '#333333',
-            showGrid: true,
-            showAxes: true,
-          },
-          series: [
-            {
-              color: '#2196f3',
-              label: 'Series 1',
-              visible: true,
-            },
-          ],
-        };
+        ],
+      };
 
-        console.log('Calling initAnyGraph with config:', defaultConfig);
-        this.anyGraphInstance = initAnyGraph(
-          this.container,
-          dataset,
-          defaultConfig
-        );
-        console.log('AnyGraph instance created:', this.anyGraphInstance);
-      }
+      console.log('Calling initAnyGraph with config:', defaultConfig);
+      this.anyGraphInstance = initAnyGraph(
+        this.container,
+        dataset,
+        defaultConfig
+      );
+      console.log('AnyGraph instance created:', this.anyGraphInstance);
 
       // Save state
       this.vscode.setState({
