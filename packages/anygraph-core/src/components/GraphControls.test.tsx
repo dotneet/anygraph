@@ -47,7 +47,8 @@ describe('GraphControls', () => {
     render(<GraphControls {...mockProps} />);
 
     expect(screen.getByText('Type:')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('line')).toBeInTheDocument();
+    const select = screen.getByRole('combobox');
+    expect(select).toHaveValue('line');
     expect(screen.getByText('Auto Scale')).toBeInTheDocument();
     expect(screen.getByText('Show Editor')).toBeInTheDocument();
   });
@@ -55,8 +56,8 @@ describe('GraphControls', () => {
   it('should display correct graph type options', () => {
     render(<GraphControls {...mockProps} />);
 
-    const select = screen.getByDisplayValue('line');
-    expect(select).toBeInTheDocument();
+    const select = screen.getByRole('combobox');
+    expect(select).toHaveValue('line');
 
     // Check if all options are present
     const options = select.querySelectorAll('option');
@@ -70,7 +71,9 @@ describe('GraphControls', () => {
   it('should call onGraphTypeChange when graph type is changed', () => {
     render(<GraphControls {...mockProps} />);
 
-    const select = screen.getByDisplayValue('line');
+    const select = screen.getByRole('combobox');
+    expect(select).toHaveValue('line');
+    
     fireEvent.change(select, { target: { value: 'scatter' } });
 
     expect(mockProps.onGraphTypeChange).toHaveBeenCalledWith('scatter');
@@ -216,8 +219,8 @@ describe('GraphControls', () => {
         />
       );
 
-      const select = screen.getByDisplayValue(type);
-      expect(select).toBeInTheDocument();
+      const select = screen.getByRole('combobox');
+      expect(select).toHaveValue(type);
 
       rerender(<div />); // Clean up for next iteration
     });

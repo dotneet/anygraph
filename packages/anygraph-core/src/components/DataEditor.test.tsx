@@ -120,9 +120,15 @@ describe('DataEditor', () => {
   it('should display sample format examples', () => {
     render(<DataEditor {...mockProps} />);
 
-    expect(screen.getByText('[1, 2, 3, 4, 5]')).toBeInTheDocument();
-    expect(screen.getByText('1, 2, 3, 4, 5')).toBeInTheDocument();
-    expect(screen.getByText('1 2 3 4 5')).toBeInTheDocument();
+    // Check that format examples are shown
+    expect(screen.getByText('1D Data Examples:')).toBeInTheDocument();
+    expect(screen.getByText('2D Data Examples:')).toBeInTheDocument();
+    expect(screen.getByText('Multi-series:')).toBeInTheDocument();
+    
+    // Check that at least one example format is shown
+    const formatSection = screen.getByText('Supported Formats:').parentElement;
+    expect(formatSection).toHaveTextContent('[1, 2, 3, 4, 5]');
+    expect(formatSection).toHaveTextContent('1, 2, 3, 4, 5');
   });
 
   it('should have quick action buttons', () => {

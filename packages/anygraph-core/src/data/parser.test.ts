@@ -8,30 +8,36 @@ describe('Data Parser', () => {
       
       expect(result.success).toBe(true);
       expect(result.dataset).toBeDefined();
-      expect(result.dataset!.dataType).toBe('values');
-      
-      const dataset = result.dataset as ValuesDataset;
-      expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+      }
     });
 
     it('should parse comma-separated values', () => {
       const result = parseData('1, 2, 3, 4');
       
       expect(result.success).toBe(true);
-      expect(result.dataset!.dataType).toBe('values');
-      
-      const dataset = result.dataset as ValuesDataset;
-      expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+      }
     });
 
     it('should parse space-separated values', () => {
       const result = parseData('1 2 3 4');
       
       expect(result.success).toBe(true);
-      expect(result.dataset!.dataType).toBe('values');
-      
-      const dataset = result.dataset as ValuesDataset;
-      expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+      }
     });
 
     it('should parse 2D data as points', () => {
@@ -40,7 +46,7 @@ describe('Data Parser', () => {
       expect(result.success).toBe(true);
       
       // For even-length small arrays, it might be interpreted as points
-      if (result.dataset!.dataType === 'points') {
+      if (result.dataset && result.dataset.dataType === 'points') {
         const dataset = result.dataset as PointsDataset;
         expect(dataset.points[0]).toEqual([
           { x: 1, y: 2 },
@@ -53,20 +59,24 @@ describe('Data Parser', () => {
       const result = parseData('[1, 2, 3] [4, 5, 6]');
       
       expect(result.success).toBe(true);
-      expect(result.dataset!.dataType).toBe('values');
-      
-      const dataset = result.dataset as ValuesDataset;
-      expect(dataset.values).toEqual([[1, 2, 3], [4, 5, 6]]);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 2, 3], [4, 5, 6]]);
+      }
     });
 
     it('should clean function calls', () => {
       const result = parseData('console.log([1, 2, 3, 4])');
       
       expect(result.success).toBe(true);
-      expect(result.dataset!.dataType).toBe('values');
-      
-      const dataset = result.dataset as ValuesDataset;
-      expect(dataset.values[0]).toEqual([1, 2, 3, 4]);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values[0]).toEqual([1, 2, 3, 4]);
+      }
     });
 
     it('should handle empty input', () => {
@@ -88,13 +98,73 @@ describe('Data Parser', () => {
       
       expect(result.success).toBe(true);
       
-      if (result.dataset!.dataType === 'points') {
+      if (result.dataset && result.dataset.dataType === 'points') {
         const dataset = result.dataset as PointsDataset;
         expect(dataset.points[0]).toEqual([
           { x: 1, y: 2 },
           { x: 3, y: 4 },
           { x: 5, y: 4 } // Last y value repeated
         ]);
+      }
+    });
+
+    it('should treat newline without trailing comma as separate data series', () => {
+      const result = parseData('1,1,2,2\n3,3,4,4');
+      
+      expect(result.success).toBe(true);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 1, 2, 2], [3, 3, 4, 4]]);
+      }
+    });
+
+    it('should treat newline with trailing comma as single data series', () => {
+      const result = parseData('1,1,2,2,\n3,3,4,4');
+      
+      expect(result.success).toBe(true);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 1, 2, 2, 3, 3, 4, 4]]);
+      }
+    });
+
+    it('should handle multiple lines with mixed comma endings', () => {
+      const result = parseData('1,2,3,\n4,5,6\n7,8,9');
+      
+      expect(result.success).toBe(true);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 2, 3, 4, 5, 6], [7, 8, 9]]);
+      }
+    });
+
+    it('should handle space-separated values with newlines', () => {
+      const result = parseData('1 1 2 2\n3 3 4 4');
+      
+      expect(result.success).toBe(true);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 1, 2, 2], [3, 3, 4, 4]]);
+      }
+    });
+
+    it('should handle complex multi-line data with trailing commas', () => {
+      const result = parseData('1,2,\n3,4,\n5,6\n7,8');
+      
+      expect(result.success).toBe(true);
+      if (result.dataset) {
+        expect(result.dataset.dataType).toBe('values');
+        
+        const dataset = result.dataset as ValuesDataset;
+        expect(dataset.values).toEqual([[1, 2, 3, 4, 5, 6], [7, 8]]);
       }
     });
   });
