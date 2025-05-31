@@ -4,10 +4,7 @@ VSCode extension for visualizing selected data as 2D graphs.
 
 ## Overview
 
-AnyGraph is a VSCode extension that allows you to visualize selected data in the editor as various types of 2D graphs. The project is structured as a monorepo with two main packages:
-
-- **anygraph-core**: Independent React-based visualization library
-- **anygraph-vscode**: VSCode extension that integrates the core library
+AnyGraph is a VSCode extension that allows you to visualize selected data in the editor as various types of 2D graphs.
 
 ## Features
 
@@ -22,78 +19,58 @@ AnyGraph is a VSCode extension that allows you to visualize selected data in the
 - **Multi-series Support**: Display multiple data series with different colors
 - **Real-time Editing**: Edit data through text area with live graph updates
 
-## Project Structure
+## Installation
 
-```
-anygraph/
-├── packages/
-│   ├── anygraph-core/          # Core visualization library
-│   │   ├── src/
-│   │   │   ├── components/     # React components
-│   │   │   ├── data/          # Data parsing and processing
-│   │   │   ├── rendering/     # Canvas rendering logic
-│   │   │   ├── types/         # TypeScript type definitions
-│   │   │   ├── hooks/         # React hooks
-│   │   │   ├── store/         # State management
-│   │   │   └── utils/         # Utility functions
-│   │   └── package.json
-│   └── anygraph-vscode/        # VSCode extension
-│       ├── src/
-│       │   ├── extension.ts   # Extension entry point
-│       │   ├── providers/     # VSCode providers
-│       │   ├── commands/      # Extension commands
-│       │   ├── webview/       # WebView integration
-│       │   └── utils/         # Extension utilities
-│       └── package.json
-├── package.json               # Root package.json (monorepo)
-├── tsconfig.base.json         # Shared TypeScript config
-└── README.md
-```
+### Installing from VSIX
 
-## Development
+1. Download the latest `.vsix` file from the releases
+2. Open VSCode
+3. Go to Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
+4. Click the "..." menu in the Extensions view
+5. Select "Install from VSIX..."
+6. Navigate to and select the downloaded `.vsix` file
 
-### Prerequisites
+### Alternative Installation Methods
 
-- Node.js >= 16.0.0
-- npm >= 8.0.0
-
-### Setup
-
+#### Using Command Line
 ```bash
-# Install dependencies
-npm install
-
-# Build all packages
-npm run build
-
-# Run tests
-npm run test
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
+code --install-extension anygraph-0.1.0.vsix
 ```
 
-### Development Workflow
+#### Using VSCode Command Palette
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Type "Extensions: Install from VSIX..."
+3. Select the command and choose the `.vsix` file
 
-1. **Core Development**: Work on `packages/anygraph-core` for visualization logic
-2. **Extension Development**: Work on `packages/anygraph-vscode` for VSCode integration
-3. **Testing**: Each package can be developed and tested independently
+## Usage
 
-## Data Format Support
+After installation, you can use the extension in three ways:
+
+### 1. Context Menu
+1. Select text containing data in any file
+2. Right-click and choose "Visualize Selection"
+
+### 2. Keyboard Shortcut
+1. Select text containing data
+2. Press `Ctrl+Shift+G` (Windows/Linux) or `Cmd+Shift+G` (Mac)
+
+### 3. Command Palette
+1. Select text containing data
+2. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+3. Search for "AnyGraph: Visualize Selection"
+
+## Supported Data Formats
 
 ### 1D Data (Values)
 ```
 Input: [1,2,3,4] or 1,2,3,4 or 1 2 3 4
-Output: values: [1,2,3,4]
+Output: Line chart with values [1,2,3,4]
 ```
 
 ### 2D Data (Points)
 ```
 Input: [1,2,3,4]
-Output: [{x:1,y:2},{x:3,y:4}]
+Output: Scatter plot with points [{x:1,y:2},{x:3,y:4}]
 ```
 
 ### Multi-series Data
@@ -101,6 +78,10 @@ Output: [{x:1,y:2},{x:3,y:4}]
 Input: [1,2] and [3,4]
 Output: Multiple data series with different colors
 ```
+
+## For Developers
+
+If you want to contribute to this project or build it from source, please see the [Developer Guide](DEVELOPER.md).
 
 ## License
 
