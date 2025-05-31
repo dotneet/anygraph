@@ -124,23 +124,115 @@ function calculateBounds(dataset: Dataset, config: GraphConfig): Bounds {
   };
 }
 
+/**
+ * Calculate unified scale for both X and Y axes
+ * Ensures both axes use the same scale normalized to powers of 2
+ * Maintains square aspect ratio regardless of canvas dimensions
+ * For quadrant modes, ensures origin (0,0) is at the center
+ */
 function calculateScale(bounds: Bounds, width: number, height: number, config: GraphConfig): Scale {
-  const margin = 40;
-  const plotWidth = width - 2 * margin;
-  const plotHeight = height - 2 * margin;
+  const margin = 60; // Increased margin for scale labels
+  const availableWidth = width - 2 * margin;
+  const availableHeight = height - 2 * margin;
 
-  const xRange = bounds.xMax - bounds.xMin;
-  const yRange = bounds.yMax - bounds.yMin;
+  // Use the smaller dimension to ensure square plotting area
+  const plotSize = Math.min(availableWidth, availableHeight);
 
-  const xScale = plotWidth / xRange;
-  const yScale = plotHeight / yRange;
+  // Check if this is a quadrant mode
+  const isQuadrantMode = config.type === 'quadrant' || config.type === 'quadrant-inverted';
+
+  let normalizedBounds: Bounds;
+
+  if (isQuadrantMode) {
+    // For quadrant modes, ensure origin (0,0) is at the center
+    normalizedBounds = calculateQuadrantBounds(bounds);
+  } else {
+    // For non-quadrant modes, use the original logic
+    const xRange = bounds.xMax - bounds.xMin;
+    const yRange = bounds.yMax - bounds.yMin;
+
+    // Calculate the maximum range to ensure uniform scaling
+    const maxRange = Math.max(xRange, yRange);
+    
+    // Normalize to power of 2
+    const normalizedRange = normalizeToPowerOfTwo(maxRange);
+    
+    // Center the data within the normalized range
+    normalizedBounds = centerDataInNormalizedRange(bounds, normalizedRange);
+  }
+  
+  // Use the same scale for both axes based on the square plot area
+  const scale = plotSize / (normalizedBounds.xMax - normalizedBounds.xMin);
+  
+  // Center the plot area within the canvas
+  const offsetX = margin + (availableWidth - plotSize) / 2;
+  const offsetY = margin + (availableHeight - plotSize) / 2;
 
   return {
-    ...bounds,
-    xScale,
-    yScale,
-    offsetX: margin,
-    offsetY: margin,
+    ...normalizedBounds,
+    xScale: scale,
+    yScale: scale,
+    offsetX,
+    offsetY,
+  };
+}
+
+/**
+ * Normalize a value to the nearest power of 2 (including negative powers)
+ * Examples: 3.5 -> 4, 0.05 -> 0.0625, 150 -> 256
+ */
+function normalizeToPowerOfTwo(value: number): number {
+  if (value === 0) return 1;
+  
+  // Find the power of 2 that is greater than or equal to the value
+  const log2 = Math.log2(Math.abs(value));
+  const power = Math.ceil(log2);
+  
+  return Math.pow(2, power);
+}
+
+/**
+ * Center the data bounds within the normalized range
+ */
+function centerDataInNormalizedRange(bounds: Bounds, normalizedRange: number): Bounds {
+  const xCenter = (bounds.xMin + bounds.xMax) / 2;
+  const yCenter = (bounds.yMin + bounds.yMax) / 2;
+  
+  return {
+    xMin: xCenter - normalizedRange / 2,
+    xMax: xCenter + normalizedRange / 2,
+    yMin: yCenter - normalizedRange / 2,
+    yMax: yCenter + normalizedRange / 2,
+  };
+}
+
+/**
+ * Calculate bounds for quadrant mode with origin (0,0) centered
+ */
+function calculateQuadrantBounds(bounds: Bounds): Bounds {
+  const xRange = bounds.xMax - bounds.xMin;
+  const yRange = bounds.yMax - bounds.yMin;
+  
+  // Calculate the maximum range to ensure uniform scaling
+  const maxRange = Math.max(xRange, yRange);
+  
+  // Find the maximum absolute value from origin to ensure origin is centered
+  const maxAbsX = Math.max(Math.abs(bounds.xMin), Math.abs(bounds.xMax));
+  const maxAbsY = Math.max(Math.abs(bounds.yMin), Math.abs(bounds.yMax));
+  const maxAbsValue = Math.max(maxAbsX, maxAbsY);
+  
+  // Use the larger of data range or absolute value range to ensure all data fits
+  const requiredRange = Math.max(maxRange, maxAbsValue * 2);
+  
+  // Normalize to power of 2
+  const normalizedRange = normalizeToPowerOfTwo(requiredRange);
+  
+  // Center the coordinate system around origin (0,0)
+  return {
+    xMin: -normalizedRange / 2,
+    xMax: normalizedRange / 2,
+    yMin: -normalizedRange / 2,
+    yMax: normalizedRange / 2,
   };
 }
 
@@ -148,12 +240,21 @@ function drawGrid(ctx: CanvasRenderingContext2D, scale: Scale, config: GraphConf
   ctx.strokeStyle = config.render.gridColor;
   ctx.lineWidth = 1;
 
-  const plotWidth = ctx.canvas.width - 2 * scale.offsetX;
-  const plotHeight = ctx.canvas.height - 2 * scale.offsetY;
+  // Calculate the actual plot size (square area)
+  const plotSize = (scale.xMax - scale.xMin) * scale.xScale;
+  const plotWidth = plotSize;
+  const plotHeight = plotSize;
+
+  // Check if Y axis is inverted
+  const isYInverted = config.type === 'quadrant-inverted';
+
+  // Grid step is 1/5 of the scale range
+  const scaleRange = scale.xMax - scale.xMin;
+  const gridStep = scaleRange / 5;
 
   // Vertical grid lines
-  const xStep = Math.max(1, Math.floor((scale.xMax - scale.xMin) / 10));
-  for (let x = Math.ceil(scale.xMin / xStep) * xStep; x <= scale.xMax; x += xStep) {
+  for (let i = 0; i <= 5; i++) {
+    const x = scale.xMin + i * gridStep;
     const canvasX = scale.offsetX + (x - scale.xMin) * scale.xScale;
     ctx.beginPath();
     ctx.moveTo(canvasX, scale.offsetY);
@@ -162,9 +263,15 @@ function drawGrid(ctx: CanvasRenderingContext2D, scale: Scale, config: GraphConf
   }
 
   // Horizontal grid lines
-  const yStep = Math.max(1, Math.floor((scale.yMax - scale.yMin) / 10));
-  for (let y = Math.ceil(scale.yMin / yStep) * yStep; y <= scale.yMax; y += yStep) {
-    const canvasY = scale.offsetY + plotHeight - (y - scale.yMin) * scale.yScale;
+  for (let i = 0; i <= 5; i++) {
+    const y = scale.yMin + i * gridStep;
+    let canvasY = scale.offsetY + plotHeight - (y - scale.yMin) * scale.yScale;
+    
+    // Handle inverted Y-axis for grid lines
+    if (isYInverted) {
+      canvasY = scale.offsetY + (y - scale.yMin) * scale.yScale;
+    }
+    
     ctx.beginPath();
     ctx.moveTo(scale.offsetX, canvasY);
     ctx.lineTo(scale.offsetX + plotWidth, canvasY);
@@ -174,13 +281,24 @@ function drawGrid(ctx: CanvasRenderingContext2D, scale: Scale, config: GraphConf
 
 function drawAxes(ctx: CanvasRenderingContext2D, scale: Scale, config: GraphConfig) {
   ctx.strokeStyle = config.render.axisColor;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1;
 
-  const plotWidth = ctx.canvas.width - 2 * scale.offsetX;
-  const plotHeight = ctx.canvas.height - 2 * scale.offsetY;
+  // Calculate the actual plot size (square area)
+  const plotSize = (scale.xMax - scale.xMin) * scale.xScale;
+  const plotWidth = plotSize;
+  const plotHeight = plotSize;
+
+  // Check if Y axis is inverted
+  const isYInverted = config.type === 'quadrant-inverted';
 
   // X-axis
-  const xAxisY = scale.offsetY + plotHeight - (0 - scale.yMin) * scale.yScale;
+  let xAxisY = scale.offsetY + plotHeight - (0 - scale.yMin) * scale.yScale;
+  
+  // Handle inverted Y-axis for X-axis position
+  if (isYInverted) {
+    xAxisY = scale.offsetY + (0 - scale.yMin) * scale.yScale;
+  }
+  
   if (xAxisY >= scale.offsetY && xAxisY <= scale.offsetY + plotHeight) {
     ctx.beginPath();
     ctx.moveTo(scale.offsetX, xAxisY);
@@ -196,17 +314,135 @@ function drawAxes(ctx: CanvasRenderingContext2D, scale: Scale, config: GraphConf
     ctx.lineTo(yAxisX, scale.offsetY + plotHeight);
     ctx.stroke();
   }
+
+  // Draw scale labels at axis endpoints
+  drawScaleLabels(ctx, scale, config);
+}
+
+/**
+ * Draw scale labels at the endpoints of both axes
+ * Shows the unified scale value used for both X and Y axes
+ */
+function drawScaleLabels(ctx: CanvasRenderingContext2D, scale: Scale, config: GraphConfig) {
+  setupScaleLabelStyle(ctx, config);
+
+  // Calculate the actual plot size (square area)
+  const plotSize = (scale.xMax - scale.xMin) * scale.xScale;
+  const plotWidth = plotSize;
+  const plotHeight = plotSize;
+  
+  // Calculate the scale value (range of the normalized axis)
+  const scaleValue = scale.xMax - scale.xMin;
+  const scaleText = formatScaleValue(scaleValue);
+
+  // Check if Y axis is inverted
+  const isYInverted = config.type === 'quadrant-inverted';
+
+  // Draw scale labels at axis endpoints
+  drawXAxisScaleLabel(ctx, scale, plotWidth, plotHeight, scaleText, isYInverted);
+  drawYAxisScaleLabel(ctx, scale, plotWidth, plotHeight, scaleText, isYInverted);
+}
+
+/**
+ * Setup text styling for scale labels
+ */
+function setupScaleLabelStyle(ctx: CanvasRenderingContext2D, config: GraphConfig) {
+  ctx.fillStyle = config.render.axisColor;
+  ctx.font = '12px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+}
+
+/**
+ * Draw scale label at the right end of X-axis
+ */
+function drawXAxisScaleLabel(
+  ctx: CanvasRenderingContext2D,
+  scale: Scale,
+  plotWidth: number,
+  plotHeight: number,
+  scaleText: string,
+  isYInverted: boolean
+) {
+  // Calculate X-axis position (same logic as in drawAxes)
+  let xAxisY = scale.offsetY + plotHeight - (0 - scale.yMin) * scale.yScale;
+  
+  // Handle inverted Y-axis for X-axis position
+  if (isYInverted) {
+    xAxisY = scale.offsetY + (0 - scale.yMin) * scale.yScale;
+  }
+  
+  if (xAxisY >= scale.offsetY && xAxisY <= scale.offsetY + plotHeight) {
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    
+    // Place label near the actual X-axis position
+    ctx.fillText(scaleText, scale.offsetX + plotWidth + 5, xAxisY - 5);
+  }
+}
+
+/**
+ * Draw scale label at the top end of Y-axis
+ */
+function drawYAxisScaleLabel(
+  ctx: CanvasRenderingContext2D,
+  scale: Scale,
+  plotWidth: number,
+  plotHeight: number,
+  scaleText: string,
+  isYInverted: boolean
+) {
+  const yAxisX = scale.offsetX + (0 - scale.xMin) * scale.xScale;
+  if (yAxisX >= scale.offsetX && yAxisX <= scale.offsetX + plotWidth) {
+    ctx.textAlign = 'right';
+    
+    if (isYInverted) {
+      // For Y inverted, place label at the bottom of the graph
+      ctx.textBaseline = 'top';
+      ctx.fillText(scaleText, yAxisX - 5, scale.offsetY + plotHeight + 5);
+    } else {
+      // Normal case, place label at the top
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(scaleText, yAxisX - 5, scale.offsetY - 5);
+    }
+  }
+}
+
+/**
+ * Format scale value for display
+ * Shows powers of 2 in a readable format
+ */
+function formatScaleValue(value: number): string {
+  // Handle special cases for common values
+  if (value === 1) return '1';
+  if (value === 2) return '2';
+  if (value === 4) return '4';
+  if (value === 8) return '8';
+  if (value === 0.5) return '0.5';
+  if (value === 0.25) return '0.25';
+  if (value === 0.125) return '0.125';
+  if (value === 0.0625) return '0.0625';
+  
+  // For larger values or other powers of 2, use exponential notation
+  if (value >= 16 || (value < 1 && value < 0.0625)) {
+    const power = Math.log2(value);
+    return `2^${Math.round(power)}`;
+  }
+  
+  return value.toString();
 }
 
 function drawData(ctx: CanvasRenderingContext2D, dataset: Dataset, scale: Scale, config: GraphConfig) {
-  const plotHeight = ctx.canvas.height - 2 * scale.offsetY;
+  // Calculate the actual plot size (square area)
+  const plotSize = (scale.xMax - scale.xMin) * scale.xScale;
+  const plotHeight = plotSize;
 
   if (dataset.dataType === 'values') {
     dataset.values.forEach((series, seriesIndex) => {
       const color = config.series[seriesIndex]?.color || '#2196f3';
       
       if (config.type === 'line') {
-        drawLineChart(ctx, series, scale, plotHeight, color);
+        drawLineChart(ctx, series, scale, plotHeight, color, config.type);
       } else {
         // Convert to points for other chart types
         const points = series.map((value, index) => ({ x: index, y: value }));
@@ -221,8 +457,11 @@ function drawData(ctx: CanvasRenderingContext2D, dataset: Dataset, scale: Scale,
   }
 }
 
-function drawLineChart(ctx: CanvasRenderingContext2D, series: number[], scale: Scale, plotHeight: number, color: string) {
+function drawLineChart(ctx: CanvasRenderingContext2D, series: number[], scale: Scale, plotHeight: number, color: string, type: string) {
   if (series.length === 0) return;
+
+  // Check if Y-axis should be inverted
+  const isYInverted = type === 'quadrant-inverted';
 
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
@@ -230,7 +469,12 @@ function drawLineChart(ctx: CanvasRenderingContext2D, series: number[], scale: S
 
   series.forEach((value, index) => {
     const x = scale.offsetX + (index - scale.xMin) * scale.xScale;
-    const y = scale.offsetY + plotHeight - (value - scale.yMin) * scale.yScale;
+    let y = scale.offsetY + plotHeight - (value - scale.yMin) * scale.yScale;
+    
+    // Handle inverted Y-axis
+    if (isYInverted) {
+      y = scale.offsetY + (value - scale.yMin) * scale.yScale;
+    }
     
     if (index === 0) {
       ctx.moveTo(x, y);
@@ -248,11 +492,19 @@ function drawPointsChart(ctx: CanvasRenderingContext2D, points: Point[], scale: 
   ctx.fillStyle = color;
   ctx.strokeStyle = color;
 
+  // Check if Y-axis should be inverted
+  const isYInverted = type === 'quadrant-inverted';
+  
   if (type === 'scatter') {
     // Draw scatter plot
     points.forEach(point => {
       const x = scale.offsetX + (point.x - scale.xMin) * scale.xScale;
-      const y = scale.offsetY + plotHeight - (point.y - scale.yMin) * scale.yScale;
+      let y = scale.offsetY + plotHeight - (point.y - scale.yMin) * scale.yScale;
+      
+      // Handle inverted Y-axis
+      if (isYInverted) {
+        y = scale.offsetY + (point.y - scale.yMin) * scale.yScale;
+      }
       
       ctx.beginPath();
       ctx.arc(x, y, 3, 0, 2 * Math.PI);
@@ -267,8 +519,8 @@ function drawPointsChart(ctx: CanvasRenderingContext2D, points: Point[], scale: 
       let x = scale.offsetX + (point.x - scale.xMin) * scale.xScale;
       let y = scale.offsetY + plotHeight - (point.y - scale.yMin) * scale.yScale;
 
-      // Handle inverted Y-axis for quadrant-inverted
-      if (type === 'quadrant-inverted') {
+      // Handle inverted Y-axis
+      if (isYInverted) {
         y = scale.offsetY + (point.y - scale.yMin) * scale.yScale;
       }
 
