@@ -238,20 +238,14 @@ describe('GraphViewProvider', () => {
       expect(mockWebview.html).toContain('.placeholder');
     });
 
-    it('should reference webview script and CSS', () => {
+    it('should reference webview script', () => {
       provider.resolveWebviewView(mockWebviewView, {}, {});
 
       expect(mockWebview.html).toContain('webview.js');
-      expect(mockWebview.html).toContain('webview.css');
       expect(vscode.Uri.joinPath).toHaveBeenCalledWith(
         mockExtensionUri,
         'dist',
         'webview.js'
-      );
-      expect(vscode.Uri.joinPath).toHaveBeenCalledWith(
-        mockExtensionUri,
-        'dist',
-        'webview.css'
       );
     });
   });

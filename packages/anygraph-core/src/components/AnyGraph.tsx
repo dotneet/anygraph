@@ -114,7 +114,6 @@ export const AnyGraph: React.FC<AnyGraphProps> = ({
         {/* Data editor panel */}
         {showEditor && (
           <div style={{ 
-            width: '300px',
             borderLeft: '1px solid #e0e0e0',
             backgroundColor: '#fafafa'
           }}>

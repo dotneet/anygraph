@@ -25,6 +25,9 @@ jest.mock('vscode', () => ({
   StatusBarAlignment: {
     Right: 2,
   },
+  Uri: {
+    parse: jest.fn((uri) => ({ toString: () => uri })),
+  },
   ExtensionContext: jest.fn(),
 }));
 
@@ -113,7 +116,7 @@ describe('Extension', () => {
       (vscode.window as any).activeTextEditor = {
         selection: { isEmpty: true },
         document: {
-          getText: jest.fn(),
+          getText: jest.fn().mockReturnValue(''),
         },
       } as any;
 
@@ -126,7 +129,7 @@ describe('Extension', () => {
       commandFunction();
 
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        'No text selected'
+        'No text selected. Please select some data to visualize.'
       );
     });
 

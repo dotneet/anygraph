@@ -87,8 +87,8 @@ class WebViewManager {
     if (!this.anyGraphInstance || !this.container) return;
 
     // Calculate new responsive dimensions
-    const containerWidth = Math.max(300, this.container.clientWidth - 20);
-    const containerHeight = Math.max(400, this.container.clientHeight - 20);
+    const containerWidth = Math.min(600, Math.max(300, this.container.clientWidth - 300));
+    const containerHeight = Math.max(400, this.container.clientHeight - 100);
     const graphWidth = Math.max(300, containerWidth - 200);
     const graphHeight = Math.max(300, containerHeight - 180);
 

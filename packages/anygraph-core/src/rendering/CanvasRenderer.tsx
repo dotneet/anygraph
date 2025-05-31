@@ -15,6 +15,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   height,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWidth = Math.min(600, width);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -24,13 +25,13 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
     if (!ctx) return;
 
     // Clear canvas
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, canvasWidth, height);
     ctx.fillStyle = config.render.backgroundColor;
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, canvasWidth, height);
 
     // Calculate scale and bounds
     const bounds = calculateBounds(dataset, config);
-    const scale = calculateScale(bounds, width, height, config);
+    const scale = calculateScale(bounds, canvasWidth, height, config);
 
     // Draw grid and axes
     if (config.render.showGrid) {
@@ -49,7 +50,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   return (
     <canvas
       ref={canvasRef}
-      width={width}
+      width={canvasWidth}
       height={height}
       style={{
         border: '1px solid #e0e0e0',
