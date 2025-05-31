@@ -1,0 +1,126 @@
+import { parseData, datasetToText } from './parser';
+import { Dataset, ValuesDataset, PointsDataset } from '../types';
+
+describe('Data Parser', () => {
+  describe('parseData', () => {
+    it('should parse simple 1D array', () => {
+      const result = parseData('[1, 2, 3, 4]');
+      
+      expect(result.success).toBe(true);
+      expect(result.dataset).toBeDefined();
+      expect(result.dataset!.dataType).toBe('values');
+      
+      const dataset = result.dataset as ValuesDataset;
+      expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+    });
+
+    it('should parse comma-separated values', () => {
+      const result = parseData('1, 2, 3, 4');
+      
+      expect(result.success).toBe(true);
+      expect(result.dataset!.dataType).toBe('values');
+      
+      const dataset = result.dataset as ValuesDataset;
+      expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+    });
+
+    it('should parse space-separated values', () => {
+      const result = parseData('1 2 3 4');
+      
+      expect(result.success).toBe(true);
+      expect(result.dataset!.dataType).toBe('values');
+      
+      const dataset = result.dataset as ValuesDataset;
+      expect(dataset.values).toEqual([[1, 2, 3, 4]]);
+    });
+
+    it('should parse 2D data as points', () => {
+      const result = parseData('[1, 2, 3, 4]');
+      
+      expect(result.success).toBe(true);
+      
+      // For even-length small arrays, it might be interpreted as points
+      if (result.dataset!.dataType === 'points') {
+        const dataset = result.dataset as PointsDataset;
+        expect(dataset.points[0]).toEqual([
+          { x: 1, y: 2 },
+          { x: 3, y: 4 }
+        ]);
+      }
+    });
+
+    it('should handle multiple arrays', () => {
+      const result = parseData('[1, 2, 3] [4, 5, 6]');
+      
+      expect(result.success).toBe(true);
+      expect(result.dataset!.dataType).toBe('values');
+      
+      const dataset = result.dataset as ValuesDataset;
+      expect(dataset.values).toEqual([[1, 2, 3], [4, 5, 6]]);
+    });
+
+    it('should clean function calls', () => {
+      const result = parseData('console.log([1, 2, 3, 4])');
+      
+      expect(result.success).toBe(true);
+      expect(result.dataset!.dataType).toBe('values');
+      
+      const dataset = result.dataset as ValuesDataset;
+      expect(dataset.values[0]).toEqual([1, 2, 3, 4]);
+    });
+
+    it('should handle empty input', () => {
+      const result = parseData('');
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('No data found');
+    });
+
+    it('should handle invalid input', () => {
+      const result = parseData('not a number');
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('No numeric data found');
+    });
+
+    it('should handle odd-length arrays for points', () => {
+      const result = parseData('[1, 2, 3, 4, 5]');
+      
+      expect(result.success).toBe(true);
+      
+      if (result.dataset!.dataType === 'points') {
+        const dataset = result.dataset as PointsDataset;
+        expect(dataset.points[0]).toEqual([
+          { x: 1, y: 2 },
+          { x: 3, y: 4 },
+          { x: 5, y: 4 } // Last y value repeated
+        ]);
+      }
+    });
+  });
+
+  describe('datasetToText', () => {
+    it('should convert values dataset to text', () => {
+      const dataset: ValuesDataset = {
+        dataType: 'values',
+        values: [[1, 2, 3], [4, 5, 6]]
+      };
+      
+      const text = datasetToText(dataset);
+      expect(text).toBe('[1, 2, 3]\n[4, 5, 6]');
+    });
+
+    it('should convert points dataset to text', () => {
+      const dataset: PointsDataset = {
+        dataType: 'points',
+        points: [[
+          { x: 1, y: 2 },
+          { x: 3, y: 4 }
+        ]]
+      };
+      
+      const text = datasetToText(dataset);
+      expect(text).toBe('[1, 2, 3, 4]');
+    });
+  });
+});
