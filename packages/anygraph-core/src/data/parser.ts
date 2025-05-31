@@ -5,8 +5,28 @@ import { Dataset, ParseResult, ValuesDataset, PointsDataset, Point } from '../ty
  */
 export function parseData(rawText: string): ParseResult {
   try {
-    // Clean the input text
-    const cleanedText = cleanInput(rawText);
+    const trimmed = rawText.trim();
+    
+    if (!trimmed) {
+      return {
+        success: false,
+        error: 'No data found in input text',
+        rawData: rawText,
+      };
+    }
+
+    // Try to parse as JSON first (before cleaning)
+    const jsonResult = tryParseJSON(trimmed);
+    if (jsonResult) {
+      return {
+        success: true,
+        dataset: jsonResult,
+        rawData: rawText,
+      };
+    }
+
+    // Clean the input text for non-JSON parsing
+    const cleanedText = cleanInput(trimmed);
     
     if (!cleanedText.trim()) {
       return {
@@ -42,6 +62,89 @@ export function parseData(rawText: string): ParseResult {
       rawData: rawText,
     };
   }
+}
+
+/**
+ * Try to parse input as JSON format
+ */
+function tryParseJSON(text: string): Dataset | null {
+  const trimmed = text.trim();
+  
+  // Check if it looks like JSON
+  if (!((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+        (trimmed.startsWith('{') && trimmed.endsWith('}')))) {
+    return null;
+  }
+
+  try {
+    // First try to parse as standard JSON
+    const parsed = JSON.parse(trimmed);
+    return convertJSONToDataset(parsed);
+  } catch {
+    // If standard JSON parsing fails, try to parse relaxed JSON (without quotes)
+    try {
+      const relaxedJSON = normalizeJSONString(trimmed);
+      const parsed = JSON.parse(relaxedJSON);
+      return convertJSONToDataset(parsed);
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
+ * Normalize JSON string by adding quotes to unquoted property names
+ */
+function normalizeJSONString(jsonStr: string): string {
+  // Replace unquoted property names with quoted ones
+  // This regex matches property names that are not already quoted
+  return jsonStr.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
+}
+
+/**
+ * Convert parsed JSON object to Dataset
+ */
+function convertJSONToDataset(parsed: any): Dataset | null {
+  if (Array.isArray(parsed)) {
+    // Handle array format: [{"x": 1, "y": 2}, {"x": 3, "y": 4}]
+    if (parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
+      const points: Point[] = [];
+      for (const item of parsed) {
+        if (typeof item === 'object' && item !== null &&
+            typeof item.x === 'number' && typeof item.y === 'number') {
+          points.push({ x: item.x, y: item.y });
+        }
+      }
+      if (points.length > 0) {
+        return {
+          dataType: 'points',
+          points: [points],
+        } as PointsDataset;
+      }
+    }
+  } else if (typeof parsed === 'object' && parsed !== null) {
+    // Handle object format: {"x": [1, 2, 3], "y": [4, 5, 6]}
+    if (Array.isArray(parsed.x) && Array.isArray(parsed.y)) {
+      const xArray = parsed.x.filter((val: any) => typeof val === 'number');
+      const yArray = parsed.y.filter((val: any) => typeof val === 'number');
+      
+      if (xArray.length > 0 && yArray.length > 0) {
+        const points: Point[] = [];
+        const minLength = Math.min(xArray.length, yArray.length);
+        
+        for (let i = 0; i < minLength; i++) {
+          points.push({ x: xArray[i], y: yArray[i] });
+        }
+        
+        return {
+          dataType: 'points',
+          points: [points],
+        } as PointsDataset;
+      }
+    }
+  }
+  
+  return null;
 }
 
 /**

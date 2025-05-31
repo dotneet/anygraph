@@ -167,6 +167,132 @@ describe('Data Parser', () => {
         expect(dataset.values).toEqual([[1, 2, 3, 4, 5, 6], [7, 8]]);
       }
     });
+
+    describe('JSON format parsing', () => {
+      it('should parse standard JSON array format - pattern1', () => {
+        const result = parseData('[{"x": 1, "y": 2}, {"x": 3, "y": 4}]');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1, y: 2 },
+            { x: 3, y: 4 }
+          ]]);
+        }
+      });
+
+      it('should parse JSON array without quotes - pattern2', () => {
+        const result = parseData('[{x: 1, y: 2}, {x: 3, y: 4}]');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1, y: 2 },
+            { x: 3, y: 4 }
+          ]]);
+        }
+      });
+
+      it('should parse standard JSON object format - pattern3', () => {
+        const result = parseData('{"x": [1, 2, 3], "y": [4, 5, 6]}');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1, y: 4 },
+            { x: 2, y: 5 },
+            { x: 3, y: 6 }
+          ]]);
+        }
+      });
+
+      it('should parse JSON object without quotes - pattern4', () => {
+        const result = parseData('{x: [1, 2, 3], y: [4, 5, 6]}');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1, y: 4 },
+            { x: 2, y: 5 },
+            { x: 3, y: 6 }
+          ]]);
+        }
+      });
+
+      it('should handle JSON object with different array lengths', () => {
+        const result = parseData('{"x": [1, 2, 3, 4], "y": [5, 6]}');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1, y: 5 },
+            { x: 2, y: 6 }
+          ]]);
+        }
+      });
+
+      it('should handle JSON with mixed number types', () => {
+        const result = parseData('[{"x": 1.5, "y": -2}, {"x": 3, "y": 4.7}]');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1.5, y: -2 },
+            { x: 3, y: 4.7 }
+          ]]);
+        }
+      });
+
+      it('should handle complex nested JSON structures', () => {
+        const result = parseData('[{"x": 1.1, "y": 2.2}, {"x": 3.3, "y": 4.4}, {"x": 5.5, "y": 6.6}]');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1.1, y: 2.2 },
+            { x: 3.3, y: 4.4 },
+            { x: 5.5, y: 6.6 }
+          ]]);
+        }
+      });
+
+      it('should handle JSON with extra whitespace', () => {
+        const result = parseData('  { x : [ 1 , 2 , 3 ] , y : [ 4 , 5 , 6 ] }  ');
+        
+        expect(result.success).toBe(true);
+        if (result.dataset) {
+          expect(result.dataset.dataType).toBe('points');
+          
+          const dataset = result.dataset as PointsDataset;
+          expect(dataset.points).toEqual([[
+            { x: 1, y: 4 },
+            { x: 2, y: 5 },
+            { x: 3, y: 6 }
+          ]]);
+        }
+      });
+    });
   });
 
   describe('datasetToText', () => {
