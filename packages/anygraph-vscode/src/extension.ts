@@ -15,19 +15,34 @@ export function activate(context: vscode.ExtensionContext) {
     const visualizeSelectionCommand = vscode.commands.registerCommand(
         'anygraph.visualizeSelection',
         () => {
+            console.log('AnyGraph: visualizeSelection command triggered');
+            
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
+                console.log('AnyGraph: No active editor found');
                 vscode.window.showErrorMessage('No active editor found');
                 return;
             }
 
             const selection = editor.selection;
-            if (selection.isEmpty) {
-                vscode.window.showErrorMessage('No text selected');
+            console.log('AnyGraph: Selection:', {
+                isEmpty: selection.isEmpty,
+                start: selection.start,
+                end: selection.end,
+                anchor: selection.anchor,
+                active: selection.active
+            });
+
+            // Check if there's any selected text, including multi-line selections
+            const selectedText = editor.document.getText(selection);
+            console.log('AnyGraph: Selected text length:', selectedText.length);
+            console.log('AnyGraph: Selected text preview:', selectedText.substring(0, 100));
+
+            if (selection.isEmpty || selectedText.trim().length === 0) {
+                console.log('AnyGraph: No text selected or empty selection');
+                vscode.window.showErrorMessage('No text selected. Please select some data to visualize.');
                 return;
             }
-
-            const selectedText = editor.document.getText(selection);
             
             // Parse the selected data
             const parseResult = parseData(selectedText);

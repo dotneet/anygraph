@@ -24,21 +24,22 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "views": {
-      "explorer": [
-        {
-          "id": "anygraph.graphView",
-          "name": "AnyGraph",
-          "when": "true"
-        }
-      ]
-    },
     "viewsContainers": {
       "activitybar": [
         {
           "id": "anygraph",
           "title": "AnyGraph",
           "icon": "$(graph)"
+        }
+      ]
+    },
+    "views": {
+      "anygraph": [
+        {
+          "id": "anygraph.graphView",
+          "name": "AnyGraph",
+          "type": "webview",
+          "when": "true"
         }
       ]
     },

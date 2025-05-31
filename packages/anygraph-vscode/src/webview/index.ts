@@ -60,7 +60,12 @@ class WebViewManager {
   }
 
   private updateData(rawText: string, dataset: Dataset) {
-    if (!this.container) return;
+    if (!this.container) {
+      console.error('Container not found');
+      return;
+    }
+
+    console.log('updateData called with:', { rawText, dataset });
 
     try {
       // Clear placeholder content
@@ -68,8 +73,18 @@ class WebViewManager {
 
       // Create or update AnyGraph instance
       if (this.anyGraphInstance) {
+        console.log('Updating existing AnyGraph instance');
         this.anyGraphInstance.updateDataset(dataset);
       } else {
+        // Calculate responsive dimensions
+        const containerWidth = this.container.clientWidth || 300;
+        const containerHeight = this.container.clientHeight || 400;
+        const graphWidth = Math.max(200, containerWidth - 40);
+        const graphHeight = Math.max(150, containerHeight - 100);
+
+        console.log('Container dimensions:', { containerWidth, containerHeight, graphWidth, graphHeight });
+        console.log('Creating new AnyGraph instance with dataset:', dataset);
+
         const defaultConfig: GraphConfig = {
           type: 'line',
           scale: {
@@ -80,28 +95,30 @@ class WebViewManager {
             autoScale: true,
           },
           render: {
-            width: Math.min(800, this.container.clientWidth - 20),
-            height: Math.min(600, this.container.clientHeight - 20),
-            backgroundColor: 'var(--vscode-editor-background)',
-            gridColor: 'var(--vscode-panel-border)',
-            axisColor: 'var(--vscode-foreground)',
+            width: graphWidth,
+            height: graphHeight,
+            backgroundColor: '#ffffff',
+            gridColor: '#e0e0e0',
+            axisColor: '#333333',
             showGrid: true,
             showAxes: true,
           },
           series: [
             {
-              color: 'var(--vscode-charts-blue)',
+              color: '#2196f3',
               label: 'Series 1',
               visible: true,
             },
           ],
         };
 
+        console.log('Calling initAnyGraph with config:', defaultConfig);
         this.anyGraphInstance = initAnyGraph(
           this.container,
           dataset,
           defaultConfig
         );
+        console.log('AnyGraph instance created:', this.anyGraphInstance);
       }
 
       // Save state
@@ -111,7 +128,10 @@ class WebViewManager {
         hasData: true,
       });
 
+      console.log('Data update completed successfully');
+
     } catch (error) {
+      console.error('Error in updateData:', error);
       this.showError(`Failed to render graph: ${error}`);
     }
   }

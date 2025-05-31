@@ -71,10 +71,6 @@ export class GraphViewProvider implements vscode.WebviewViewProvider {
         const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview.js');
         const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
 
-        // Get the local path to CSS file
-        const stylePathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview.css');
-        const styleUri = webview.asWebviewUri(stylePathOnDisk);
-
         // Use a nonce to only allow specific scripts to be run
         const nonce = getNonce();
 
@@ -82,9 +78,8 @@ export class GraphViewProvider implements vscode.WebviewViewProvider {
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' 'unsafe-eval';">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${styleUri}" rel="stylesheet">
                 <title>AnyGraph</title>
                 <style>
                     body {
