@@ -1,9 +1,9 @@
-import { Dataset, ParseResult, ValuesDataset, PointsDataset, Point } from '../types';
+import { Dataset, ParseResult, ValuesDataset, PointsDataset, Point, GraphType } from '../types';
 
 /**
  * Parse raw text data into structured dataset
  */
-export function parseData(rawText: string): ParseResult {
+export function parseData(graphType: GraphType, rawText: string): ParseResult {
   try {
     const trimmed = rawText.trim();
     
@@ -48,8 +48,7 @@ export function parseData(rawText: string): ParseResult {
     }
 
     // Determine if this should be treated as 1D or 2D data
-    const dataset = determineDatasetType(arrays);
-
+    const dataset = determineDatasetType(graphType, arrays);
     return {
       success: true,
       dataset,
@@ -264,42 +263,17 @@ function parseNumberSequence(text: string): number[] {
 /**
  * Determine whether the data should be treated as 1D values or 2D points
  */
-function determineDatasetType(arrays: number[][]): Dataset {
-  // If we have multiple arrays, treat as multiple series
-  if (arrays.length > 1) {
-    // For multiple arrays, default to 1D values unless there's strong evidence for 2D points
-    // Only treat as 2D points if all arrays are exactly length 2 (single points)
-    const allLength2 = arrays.every(arr => arr.length === 2);
-    
-    if (allLength2) {
-      // Likely 2D point data - each array is a single point
-      const pointSeries: Point[][] = arrays.map(arr => convertToPoints(arr));
-      return {
-        dataType: 'points',
-        points: pointSeries,
-      } as PointsDataset;
-    } else {
-      // Treat as 1D value series
-      return {
-        dataType: 'values',
-        values: arrays,
-      } as ValuesDataset;
-    }
+function determineDatasetType(graphType: GraphType, arrays: number[][]): Dataset {
+  if (graphType === 'line') {
+    return {
+      dataType: 'values',
+      values: arrays,
+    } as ValuesDataset;
   }
-
-  // Single array - decide based on length and context
-  const singleArray = arrays[0];
-  
-  // For single arrays, default to 1D values unless explicitly formatted as points
-  // Only treat as 2D points if it's a very small even-length array (like [1,2] or [1,2,3,4])
-  // and the context suggests it (which we can't determine from just numbers)
-  // So for now, always treat single arrays as 1D values
-
-  // Default to 1D values
   return {
-    dataType: 'values',
-    values: [singleArray],
-  } as ValuesDataset;
+    dataType: 'points',
+    points: arrays.map(arr => convertToPoints(arr)),
+  } as PointsDataset;
 }
 
 /**

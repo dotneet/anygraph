@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Dataset, GraphConfig, GraphType } from '../types';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
 import { DataEditor } from './DataEditor';
@@ -23,6 +23,17 @@ export const AnyGraph: React.FC<AnyGraphProps> = ({
   const [rawText, setRawText] = useState<string>('');
   const [showEditor, setShowEditor] = useState<boolean>(false);
 
+  useEffect(() => {
+    // Only parse data when rawText is not empty
+    if (rawText.trim()) {
+      console.log(currentConfig.type, rawText);
+      const parseResult = parseData(currentConfig.type, rawText);
+      if (parseResult.success && parseResult.dataset) {
+        setCurrentDataset(parseResult.dataset);
+      }
+    }
+  }, [currentConfig.type, rawText]);
+
   const handleConfigChange = useCallback((newConfig: Partial<GraphConfig>) => {
     const updatedConfig = { ...currentConfig, ...newConfig };
     setCurrentConfig(updatedConfig);
@@ -31,13 +42,20 @@ export const AnyGraph: React.FC<AnyGraphProps> = ({
 
   const handleDataEdit = useCallback((text: string) => {
     setRawText(text);
-    const parseResult = parseData(text);
     
-    if (parseResult.success && parseResult.dataset) {
-      setCurrentDataset(parseResult.dataset);
+    // Only parse and update if text is not empty
+    if (text.trim()) {
+      const parseResult = parseData(currentConfig.type, text);
+      
+      if (parseResult.success && parseResult.dataset) {
+        setCurrentDataset(parseResult.dataset);
+        onDataEdit?.(text);
+      }
+    } else {
+      // If text is empty, keep the current dataset but update rawText
       onDataEdit?.(text);
     }
-  }, [onDataEdit]);
+  }, [currentConfig.type, onDataEdit]);
 
   const handleGraphTypeChange = useCallback((type: GraphType) => {
     handleConfigChange({ type });

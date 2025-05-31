@@ -11,7 +11,7 @@ export * from './rendering/CanvasRenderer';
 
 // Default configuration
 const defaultConfig: GraphConfig = {
-  type: 'line' as GraphType,
+  type: 'quadrant-inverted' as GraphType,
   scale: {
     xMin: 0,
     xMax: 10,
@@ -39,8 +39,8 @@ const defaultConfig: GraphConfig = {
 
 // Sample dataset for development
 const sampleDataset: Dataset = {
-  dataType: 'values',
-  values: [[1, 2, 3, 4, 5]],
+  dataType: 'points',
+  points: [[{x: 1, y: 2}, {x: 3, y: 4}, {x: 5, y: 6}]],
 };
 
 // Main initialization function for standalone usage

@@ -87,7 +87,7 @@
     "dev": "webpack --mode=development --watch",
     "test": "jest",
     "test:watch": "jest --watch",
-    "package": "vsce package --no-dependencies",
+    "package": "npm run build && vsce package --no-dependencies",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"
   },

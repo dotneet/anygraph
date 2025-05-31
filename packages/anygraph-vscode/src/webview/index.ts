@@ -13,6 +13,8 @@ class WebViewManager {
   private vscode: ReturnType<typeof acquireVsCodeApi>;
   private anyGraphInstance: any = null;
   private container: HTMLElement | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private resizeTimeout: number | null = null;
 
   constructor() {
     this.vscode = acquireVsCodeApi();
@@ -36,6 +38,9 @@ class WebViewManager {
       return;
     }
 
+    // Setup responsive behavior
+    this.setupResponsiveBehavior();
+
     // Listen for messages from the extension
     window.addEventListener('message', (event: any) => {
       const message = event.data;
@@ -44,6 +49,63 @@ class WebViewManager {
 
     // Notify extension that webview is ready
     this.vscode.postMessage({ type: 'ready' });
+  }
+
+  private setupResponsiveBehavior() {
+    if (!this.container) return;
+
+    // Setup ResizeObserver for container size changes
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        console.log('ResizeObserver triggered');
+        if (this.resizeTimeout) {
+          clearTimeout(this.resizeTimeout);
+        }
+        
+        // Debounce resize events to avoid excessive re-renders
+        this.resizeTimeout = window.setTimeout(() => {
+          this.handleResize();
+        }, 150);
+      });
+      
+      this.resizeObserver.observe(this.container);
+    }
+
+    // Fallback for browsers without ResizeObserver
+    window.addEventListener('resize', () => {
+      if (this.resizeTimeout) {
+        clearTimeout(this.resizeTimeout);
+      }
+      
+      this.resizeTimeout = window.setTimeout(() => {
+        this.handleResize();
+      }, 150);
+    });
+  }
+
+  private handleResize() {
+    if (!this.anyGraphInstance || !this.container) return;
+
+    // Calculate new responsive dimensions
+    const containerWidth = Math.max(300, this.container.clientWidth - 20);
+    const containerHeight = Math.max(400, this.container.clientHeight - 20);
+    const graphWidth = Math.max(300, containerWidth - 200);
+    const graphHeight = Math.max(300, containerHeight - 180);
+
+    console.log('Container dimensions:', this.container.clientWidth, this.container.clientHeight);
+    console.log('Resizing graph to:', { graphWidth, graphHeight });
+
+    // Update graph dimensions
+    try {
+      this.anyGraphInstance.updateConfig({
+        render: {
+          width: graphWidth,
+          height: graphHeight,
+        }
+      });
+    } catch (error) {
+      console.warn('Error during resize:', error);
+    }
   }
 
   private handleMessage(message: any) {
@@ -82,17 +144,17 @@ class WebViewManager {
       // Clear container content
       this.container.innerHTML = '';
 
-      // Calculate responsive dimensions
-      const containerWidth = this.container.clientWidth || 300;
-      const containerHeight = this.container.clientHeight || 400;
-      const graphWidth = Math.max(200, containerWidth - 40);
+      // Calculate responsive dimensions with better logic
+      const containerWidth = Math.max(300, this.container.clientWidth - 20);
+      const containerHeight = Math.max(400, this.container.clientHeight - 20);
+      const graphWidth = Math.max(150, containerWidth - 100);
       const graphHeight = Math.max(150, containerHeight - 100);
 
       console.log('Container dimensions:', { containerWidth, containerHeight, graphWidth, graphHeight });
       console.log('Creating new AnyGraph instance with dataset:', dataset);
 
       const defaultConfig: GraphConfig = {
-        type: 'line',
+        type: 'quadrant-inverted',
         scale: {
           xMin: 0,
           xMax: 10,
@@ -175,7 +237,35 @@ class WebViewManager {
       </div>
     `;
   }
+
+  // Cleanup method for proper resource management
+  public destroy() {
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = null;
+    }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    if (this.anyGraphInstance) {
+      try {
+        this.anyGraphInstance.destroy();
+      } catch (error) {
+        console.warn('Error destroying AnyGraph instance:', error);
+      }
+      this.anyGraphInstance = null;
+    }
+  }
 }
 
 // Initialize when script loads
-new WebViewManager();
+const webViewManagerInstance = new WebViewManager();
+
+// Export for testing
+if (typeof global !== 'undefined') {
+  // @ts-ignore
+  global.webViewManagerInstance = webViewManagerInstance;
+}

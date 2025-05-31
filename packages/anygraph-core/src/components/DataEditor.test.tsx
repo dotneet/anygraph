@@ -165,6 +165,7 @@ describe('DataEditor', () => {
 
     const textarea = screen.getByPlaceholderText('Enter your data here...');
     expect(textarea).toHaveValue('');
+    expect(mockProps.onTextChange).toHaveBeenCalledWith('');
   });
 
   it('should show valid state styling by default', () => {
@@ -249,12 +250,17 @@ describe('DataEditor', () => {
     expect(screen.getByText('0 series, 0 values total')).toBeInTheDocument();
   });
 
-  it('should update textarea value when rawText prop changes', () => {
+  it('should preserve user edits and not reset when rawText prop changes', () => {
     const { rerender } = render(<DataEditor {...mockProps} />);
 
     let textarea = screen.getByPlaceholderText('Enter your data here...');
     expect(textarea).toHaveValue('[1, 2, 3, 4, 5]');
 
+    // User edits the text
+    fireEvent.change(textarea, { target: { value: '[10, 20, 30]' } });
+    expect(textarea).toHaveValue('[10, 20, 30]');
+
+    // External rawText prop changes - should not override user edit
     rerender(
       <DataEditor
         {...mockProps}
@@ -263,7 +269,15 @@ describe('DataEditor', () => {
     );
 
     textarea = screen.getByPlaceholderText('Enter your data here...');
-    expect(textarea).toHaveValue('[6, 7, 8, 9]');
+    // Should still have the user's edited value, not the new rawText
+    expect(textarea).toHaveValue('[10, 20, 30]');
+  });
+
+  it('should initialize with rawText on first render', () => {
+    render(<DataEditor {...mockProps} rawText="[100, 200, 300]" />);
+
+    const textarea = screen.getByPlaceholderText('Enter your data here...');
+    expect(textarea).toHaveValue('[100, 200, 300]');
   });
 
   it('should maintain textarea focus during editing', () => {

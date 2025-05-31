@@ -113,7 +113,7 @@ describe('GraphControls', () => {
     expect(screen.getAllByText('to')).toHaveLength(2);
 
     // Check for input fields
-    const inputs = screen.getAllByRole('spinbutton');
+    const inputs = screen.getAllByRole('textbox');
     expect(inputs).toHaveLength(4); // xMin, xMax, yMin, yMax
   });
 
@@ -137,7 +137,7 @@ describe('GraphControls', () => {
       />
     );
 
-    const inputs = screen.getAllByRole('spinbutton');
+    const inputs = screen.getAllByRole('textbox');
     
     // Change xMin
     fireEvent.change(inputs[0], { target: { value: '5' } });
@@ -239,7 +239,7 @@ describe('GraphControls', () => {
       />
     );
 
-    const inputs = screen.getAllByRole('spinbutton');
+    const inputs = screen.getAllByRole('textbox');
     
     // Test decimal input
     fireEvent.change(inputs[0], { target: { value: '2.5' } });
@@ -259,10 +259,129 @@ describe('GraphControls', () => {
       />
     );
 
-    const inputs = screen.getAllByRole('spinbutton');
+    const inputs = screen.getAllByRole('textbox');
     
     // Test negative input
     fireEvent.change(inputs[2], { target: { value: '-10' } });
     expect(mockProps.onScaleChange).toHaveBeenCalledWith({ yMin: -10 });
+  });
+
+  it('should handle invalid text input gracefully', () => {
+    const configWithManualScale = {
+      ...mockConfig,
+      scale: { ...mockConfig.scale, autoScale: false },
+    };
+
+    render(
+      <GraphControls
+        {...mockProps}
+        config={configWithManualScale}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    
+    // Test invalid input - should not call onScaleChange
+    fireEvent.change(inputs[0], { target: { value: 'invalid' } });
+    expect(mockProps.onScaleChange).not.toHaveBeenCalled();
+    
+    // Input should retain the invalid value
+    expect(inputs[0]).toHaveValue('invalid');
+  });
+
+  it('should allow invalid values to remain in input', () => {
+    const configWithManualScale = {
+      ...mockConfig,
+      scale: { ...mockConfig.scale, autoScale: false },
+    };
+
+    render(
+      <GraphControls
+        {...mockProps}
+        config={configWithManualScale}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    
+    // Test empty input - should not call onScaleChange but allow empty value
+    fireEvent.change(inputs[0], { target: { value: '' } });
+    expect(mockProps.onScaleChange).not.toHaveBeenCalled();
+    expect(inputs[0]).toHaveValue('');
+    
+    // Test minus sign only - should not call onScaleChange but allow minus sign
+    fireEvent.change(inputs[0], { target: { value: '-' } });
+    expect(mockProps.onScaleChange).not.toHaveBeenCalled();
+    expect(inputs[0]).toHaveValue('-');
+  });
+
+  it('should allow intermediate input states during typing', () => {
+    const configWithManualScale = {
+      ...mockConfig,
+      scale: { ...mockConfig.scale, autoScale: false },
+    };
+
+    render(
+      <GraphControls
+        {...mockProps}
+        config={configWithManualScale}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    
+    // Test partial input that results in valid number (1. becomes 1)
+    fireEvent.change(inputs[0], { target: { value: '1.' } });
+    expect(mockProps.onScaleChange).toHaveBeenCalledWith({ xMin: 1 });
+    expect(inputs[0]).toHaveValue('1.');
+    
+    // Clear mock calls for next test
+    jest.clearAllMocks();
+    
+    // Complete the decimal input
+    fireEvent.change(inputs[0], { target: { value: '1.5' } });
+    expect(mockProps.onScaleChange).toHaveBeenCalledWith({ xMin: 1.5 });
+  });
+
+  it('should display placeholder text for scale inputs', () => {
+    const configWithManualScale = {
+      ...mockConfig,
+      scale: { ...mockConfig.scale, autoScale: false },
+    };
+
+    render(
+      <GraphControls
+        {...mockProps}
+        config={configWithManualScale}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    
+    // Check placeholders
+    expect(inputs[0]).toHaveAttribute('placeholder', 'min');
+    expect(inputs[1]).toHaveAttribute('placeholder', 'max');
+    expect(inputs[2]).toHaveAttribute('placeholder', 'min');
+    expect(inputs[3]).toHaveAttribute('placeholder', 'max');
+  });
+
+  it('should handle scientific notation input', () => {
+    const configWithManualScale = {
+      ...mockConfig,
+      scale: { ...mockConfig.scale, autoScale: false },
+    };
+
+    render(
+      <GraphControls
+        {...mockProps}
+        config={configWithManualScale}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    
+    // Test scientific notation
+    fireEvent.change(inputs[0], { target: { value: '1e-3' } });
+    expect(mockProps.onScaleChange).toHaveBeenCalledWith({ xMin: 0.001 });
   });
 });

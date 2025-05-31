@@ -23,6 +23,31 @@ export const GraphControls: React.FC<GraphControlsProps> = ({
     { value: 'quadrant-inverted', label: '4-Quadrant (Inverted Y)' },
   ];
 
+  // Handle scale input changes with validation
+  const handleScaleInputChange = (
+    scaleProperty: 'xMin' | 'xMax' | 'yMin' | 'yMax',
+    value: string
+  ) => {
+    const trimmedValue = value.trim();
+    const parsed = parseFloat(trimmedValue);
+    
+    // Only update the scale if the parsed value is a valid number
+    if (!isNaN(parsed)) {
+      onScaleChange({ [scaleProperty]: parsed });
+    }
+    // Allow invalid values to remain in the input without updating the graph
+  };
+
+  // Common input style for scale inputs
+  const scaleInputStyle = {
+    width: '70px',
+    padding: '4px 6px',
+    border: '1px solid #ccc',
+    borderRadius: '3px',
+    fontSize: '12px',
+    textAlign: 'center' as const,
+  };
+
   return (
     <div style={{ 
       display: 'flex', 
@@ -70,62 +95,38 @@ export const GraphControls: React.FC<GraphControlsProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <label style={{ fontSize: '12px' }}>X:</label>
             <input
-              type="number"
-              value={config.scale.xMin}
-              onChange={(e) => onScaleChange({ xMin: parseFloat(e.target.value) })}
-              style={{
-                width: '60px',
-                padding: '2px 4px',
-                border: '1px solid #ccc',
-                borderRadius: '3px',
-                fontSize: '12px',
-              }}
-              step="0.1"
+              type="text"
+              defaultValue={config.scale.xMin?.toString() || ''}
+              onChange={(e) => handleScaleInputChange('xMin', e.target.value)}
+              placeholder="min"
+              style={scaleInputStyle}
             />
             <span style={{ fontSize: '12px' }}>to</span>
             <input
-              type="number"
-              value={config.scale.xMax}
-              onChange={(e) => onScaleChange({ xMax: parseFloat(e.target.value) })}
-              style={{
-                width: '60px',
-                padding: '2px 4px',
-                border: '1px solid #ccc',
-                borderRadius: '3px',
-                fontSize: '12px',
-              }}
-              step="0.1"
+              type="text"
+              defaultValue={config.scale.xMax?.toString() || ''}
+              onChange={(e) => handleScaleInputChange('xMax', e.target.value)}
+              placeholder="max"
+              style={scaleInputStyle}
             />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <label style={{ fontSize: '12px' }}>Y:</label>
             <input
-              type="number"
-              value={config.scale.yMin}
-              onChange={(e) => onScaleChange({ yMin: parseFloat(e.target.value) })}
-              style={{
-                width: '60px',
-                padding: '2px 4px',
-                border: '1px solid #ccc',
-                borderRadius: '3px',
-                fontSize: '12px',
-              }}
-              step="0.1"
+              type="text"
+              defaultValue={config.scale.yMin?.toString() || ''}
+              onChange={(e) => handleScaleInputChange('yMin', e.target.value)}
+              placeholder="min"
+              style={scaleInputStyle}
             />
             <span style={{ fontSize: '12px' }}>to</span>
             <input
-              type="number"
-              value={config.scale.yMax}
-              onChange={(e) => onScaleChange({ yMax: parseFloat(e.target.value) })}
-              style={{
-                width: '60px',
-                padding: '2px 4px',
-                border: '1px solid #ccc',
-                borderRadius: '3px',
-                fontSize: '12px',
-              }}
-              step="0.1"
+              type="text"
+              defaultValue={config.scale.yMax?.toString() || ''}
+              onChange={(e) => handleScaleInputChange('yMax', e.target.value)}
+              placeholder="max"
+              style={scaleInputStyle}
             />
           </div>
         </>

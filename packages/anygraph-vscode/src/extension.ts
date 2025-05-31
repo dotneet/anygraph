@@ -45,7 +45,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
             
             // Parse the selected data
-            const parseResult = parseData(selectedText);
+            const parseResult = parseData('quadrant-inverted', selectedText);
             
             if (!parseResult.success) {
                 vscode.window.showErrorMessage(

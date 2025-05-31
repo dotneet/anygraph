@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dataset } from '../types';
 import { datasetToText } from '../data/parser';
 
@@ -15,19 +15,33 @@ export const DataEditor: React.FC<DataEditorProps> = ({
 }) => {
   const [currentText, setCurrentText] = useState<string>(rawText);
   const [isValid, setIsValid] = useState<boolean>(true);
+  const [isUserEditing, setIsUserEditing] = useState<boolean>(false);
+  const initializedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (!rawText && dataset) {
-      // If no raw text provided, generate from dataset
-      const generatedText = datasetToText(dataset);
-      setCurrentText(generatedText);
-    } else {
-      setCurrentText(rawText);
+    // Only initialize text once when component first mounts
+    if (!initializedRef.current) {
+      if (!rawText && dataset) {
+        // If no raw text provided, generate from dataset
+        const generatedText = datasetToText(dataset);
+        setCurrentText(generatedText);
+      } else {
+        setCurrentText(rawText);
+      }
+      initializedRef.current = true;
     }
   }, [rawText, dataset]);
 
+  // Update text only if user is not actively editing and rawText changes from external source
+  useEffect(() => {
+    if (!isUserEditing && rawText !== currentText && initializedRef.current) {
+      setCurrentText(rawText);
+    }
+  }, [rawText, isUserEditing, currentText]);
+
   const handleTextChange = (text: string) => {
     setCurrentText(text);
+    setIsUserEditing(true);
     
     // Validate the text by attempting to parse it
     try {
@@ -36,6 +50,9 @@ export const DataEditor: React.FC<DataEditorProps> = ({
     } catch (error) {
       setIsValid(false);
     }
+    
+    // Reset editing flag after a short delay to allow for external updates
+    setTimeout(() => setIsUserEditing(false), 100);
   };
 
   const getDatasetInfo = () => {
@@ -190,7 +207,12 @@ export const DataEditor: React.FC<DataEditorProps> = ({
           Sample 2D
         </button>
         <button
-          onClick={() => setCurrentText('')}
+          onClick={() => {
+            setCurrentText('');
+            setIsUserEditing(true);
+            onTextChange('');
+            setTimeout(() => setIsUserEditing(false), 100);
+          }}
           style={{
             padding: '4px 8px',
             fontSize: '12px',
